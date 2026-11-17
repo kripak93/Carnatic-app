@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Riyaz — Indian Classical Vocal Practice</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css?v=11" />
+</head>
+<body data-theme="dark">
+  <!-- 1. Sticky top bar -->
+  <header class="topbar">
+    <div class="topbar__brand">Riyaz</div>
+    <div class="topbar__status" id="status">Showing an example. Tap “Start singing” when ready.</div>
+    <div class="topbar__actions">
+      <button class="btn" id="themeBtn" type="button" title="Toggle theme">◐</button>
+      <button class="btn" id="droneBtn" type="button">Drone: Off</button>
+      <button class="btn btn--primary" id="startBtn" type="button">Start singing</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- 2. Controls row -->
+    <section class="controls card">
+      <div class="controls__group">
+        <label class="lbl">Sa note</label>
+        <div class="row">
+          <select id="saNote" class="input"></select>
+          <select id="saOctave" class="input input--narrow"></select>
+          <button class="btn" id="singSaBtn" type="button">Sing my Sa</button>
+        </div>
+        <div class="row">
+          <input type="range" id="saFine" class="slider" min="-50" max="50" value="0" />
+          <span class="mono" id="saFineVal">0¢</span>
+          <span class="mono" id="saHz">— Hz</span>
+        </div>
+      </div>
+
+      <div class="controls__group">
+        <label class="lbl">Raga</label>
+        <select id="ragaSelect" class="input"></select>
+      </div>
+
+      <div class="controls__group">
+        <label class="lbl">Swara names</label>
+        <div class="seg" id="tradSeg">
+          <button class="seg__btn seg__btn--on" data-trad="carnatic" type="button">Carnatic</button>
+          <button class="seg__btn" data-trad="hindustani" type="button">Hindustani</button>
+        </div>
+        <label class="lbl">Tuning</label>
+        <div class="seg" id="tuneSeg">
+          <button class="seg__btn seg__btn--on" data-tune="just" type="button">Just</button>
+          <button class="seg__btn" data-tune="equal" type="button">Equal</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Live row: 3 panels -->
+    <section class="live">
+      <!-- Attempted note -->
+      <div class="card note" id="noteCard">
+        <div class="note__badge" id="exampleBadge">Example</div>
+        <div class="note__swara" id="noteSwara">—</div>
+        <div class="note__long" id="noteLong">—</div>
+        <div class="note__tag" id="noteTag">—</div>
+        <div class="note__offset" id="noteOffset">—</div>
+        <div class="note__second" id="noteSecond"></div>
+        <div class="probbar"><div class="probbar__top" id="probTop"></div><div class="probbar__second" id="probSecond"></div></div>
+        <div class="note__abs" id="noteAbs">— Hz</div>
+      </div>
+
+      <!-- Zoom canvas -->
+      <div class="card zoom">
+        <span class="lbl">Zoom — you vs the target</span>
+        <canvas id="zoomCanvas" width="320" height="260"></canvas>
+        <p class="hintline">Solid line = target swara. Dashed = neighbours. Green band = in tune (±10¢). Dot = you now.</p>
+      </div>
+
+      <!-- Steadiness tiles -->
+      <div class="card steady">
+        <span class="lbl">Steadiness (while holding a note)</span>
+        <div class="steady__grid" id="steadyGrid"></div>
+      </div>
+    </section>
+
+    <!-- 4. Pitch trace -->
+    <section class="card trace">
+      <div class="trace__head">
+        <span class="lbl">Pitch trace</span>
+        <div class="row">
+          <div class="seg" id="spanSeg">
+            <button class="seg__btn" data-span="5" type="button">5s</button>
+            <button class="seg__btn seg__btn--on" data-span="10" type="button">10s</button>
+            <button class="seg__btn" data-span="20" type="button">20s</button>
+          </div>
+          <button class="btn" id="freezeBtn" type="button">Freeze</button>
+          <button class="btn" id="clearBtn" type="button">Clear</button>
+        </div>
+      </div>
+      <canvas id="traceCanvas" width="960" height="320"></canvas>
+      <div class="legend">
+        <span class="legend__item"><i class="legend__swatch" style="background:var(--gold)"></i>Sa (your tonic)</span>
+        <span class="legend__item"><i class="legend__swatch" style="background:var(--in)"></i>In-raga swara</span>
+        <span class="legend__item"><i class="legend__swatch legend__swatch--dash" style="background:var(--out)"></i>Outside raga</span>
+        <span class="legend__item"><i class="legend__swatch legend__swatch--line" style="background:var(--in)"></i>Your pitch (smoothed)</span>
+        <span class="legend__item"><i class="legend__swatch legend__swatch--dot"></i>Raw pitch</span>
+        <span class="legend__item legend__hint">Flatter line = steadier. Riding a swara line = in tune. “now” is the right edge.</span>
+      </div>
+    </section>
+
+    <!-- 5. Raga + drone -->
+    <section class="twocol">
+      <div class="card raga">
+        <div class="raga__head">
+          <h3 id="ragaName">—</h3>
+          <span class="muted" id="ragaMeta">—</span>
+        </div>
+        <p class="muted" id="ragaDesc">—</p>
+        <div class="raga__scale">
+          <div><span class="lbl" id="arohLbl">Arohanam</span><div class="chips" id="arohChips"></div></div>
+          <div><span class="lbl" id="avrohLbl">Avarohanam</span><div class="chips" id="avrohChips"></div></div>
+        </div>
+        <div class="keyboard" id="keyboard"></div>
+        <button class="btn" id="playScaleBtn" type="button">Play scale</button>
+      </div>
+
+      <div class="card drone">
+        <label class="lbl">Drone type</label>
+        <div class="seg" id="droneTypeSeg">
+          <button class="seg__btn seg__btn--on" data-drone="tanpura" type="button">Tanpura</button>
+          <button class="seg__btn" data-drone="shruti" type="button">Shruti</button>
+          <button class="seg__btn" data-drone="pure" type="button">Pure</button>
+          <button class="seg__btn" data-drone="breath" type="button">Breath</button>
+        </div>
+        <label class="lbl">Volume</label>
+        <input type="range" id="droneVolSlider" class="slider" min="0" max="100" value="50" />
+        <div id="airWrap"><label class="lbl">Air</label>
+          <input type="range" id="droneAirSlider" class="slider" min="0" max="100" value="0" /></div>
+        <div id="tanpuraOpts">
+          <label class="lbl">First string</label>
+          <select id="firstStringSel" class="input">
+            <option value="auto">Auto</option><option value="pa">Pa</option>
+            <option value="ma">Ma</option><option value="ni">Ni</option>
+          </select>
+          <label class="lbl">Cycle length</label>
+          <input type="range" id="cycleSlider" class="slider" min="3" max="7" step="0.1" value="4.4" />
+          <span class="mono" id="cycleVal">4.4s</span>
+        </div>
+        <p class="muted small">Headphones recommended so the drone doesn't bleed into the mic.</p>
+      </div>
+    </section>
+
+    <!-- 6. Session + mic -->
+    <section class="twocol">
+      <div class="card session">
+        <div class="row between">
+          <span class="lbl">Session</span>
+          <div class="row">
+            <button class="btn btn--primary" id="scoreBtn" type="button">Score me</button>
+            <button class="btn" id="reportBtn" type="button" title="Report (HTML) plus chart (PNG)">Report + chart</button>
+            <button class="btn" id="saveJsonBtn" type="button" title="Summary, score and every frame">Save JSON</button>
+            <button class="btn" id="saveCsvBtn" type="button" title="Frame data for spreadsheets">Save CSV</button>
+            <button class="btn" id="resetSessionBtn" type="button">Reset</button>
+          </div>
+        </div>
+
+        <div class="score" id="scorePanel" hidden>
+          <div class="score__big"><span id="scoreNum">—</span><span class="score__label" id="scoreLabel"></span></div>
+          <div class="score__bars" id="scoreBars"></div>
+          <div class="score__tip" id="scoreTip"></div>
+        </div>
+
+        <table class="session__table"><thead>
+          <tr>
+            <th title="The swara (relative to your Sa)">Swara</th>
+            <th title="Total time you spent on this swara">Held</th>
+            <th title="Average miss: + is sharp (high), − is flat (low). Aim for 0.">Avg offset</th>
+            <th title="How scattered you were. Smaller = more consistent.">Spread</th>
+          </tr>
+        </thead><tbody id="sessionBody"></tbody></table>
+        <p class="hintline">Offset = direction you miss (±¢). Spread = consistency (smaller is better).</p>
+        <div class="session__summary" id="sessionSummary">—</div>
+      </div>
+
+      <div class="card mic">
+        <span class="lbl">Microphone</span>
+        <div class="levelmeter"><div class="levelmeter__fill" id="levelFill"></div>
+          <div class="levelmeter__gate" id="gateTick"></div></div>
+        <label class="lbl">Ignore background <span class="mono" id="marginVal">10 dB</span></label>
+        <input type="range" id="marginSlider" class="slider" min="4" max="24" value="10" />
+        <label class="lbl">Smoothing <span class="mono" id="smoothVal">5</span></label>
+        <input type="range" id="smoothSlider" class="slider" min="0" max="4" step="1" value="1" />
+        <label class="chk"><input type="checkbox" id="headphonesChk" /> Using headphones</label>
+        <button class="btn" id="recheckBtn" type="button">Re-check room</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="src/music.js?v=11"></script>
+  <script src="src/yin.js?v=11"></script>
+  <script src="src/analysis.js?v=11"></script>
+  <script src="src/drone.js?v=11"></script>
+  <script src="src/app.js?v=11"></script>
+</body>
+</html>
+
+
+
+
+
